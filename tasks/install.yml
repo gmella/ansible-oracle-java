@@ -64,23 +64,19 @@
         src: "{{ java_install_dir }}/jdk{{ jdk_version }}"
         state: link
 
-    - name: alternatives link for "java"
+    - name: prepare alternative binaries
+      shell: ls {{ java_install_dir }}'/'{{ java_default_link_name }}/bin/*
+      register: "binaries"
+      # force shell to be ignored so we can be idempotent 
+      changed_when: false
+      
+    - name: "alternatives link for binaries"
       alternatives:
-        name: java
-        link: /usr/bin/java
-        path: "{{ java_install_dir }}/{{ java_default_link_name }}/bin/java"
-
-    - name: alternatives link for "javac"
-      alternatives:
-        name: javac
-        link: /usr/bin/javac
-        path: "{{ java_install_dir }}/{{ java_default_link_name }}/bin/javac"
-
-    - name: alternatives link for "jar"
-      alternatives:
-        name: jar
-        link: /usr/bin/jar
-        path: "{{ java_install_dir }}/{{ java_default_link_name }}/bin/jar"
+        name: "{{ item|basename }}"
+        link: "/usr/bin/{{ item|basename }}"
+        path: "{{ item }}"
+      with_items:
+        - "{{ binaries.stdout_lines | default([]) }}"
 
     - name: check if "java_sdk" target exists
       stat: path=/usr/lib/jvm/java
